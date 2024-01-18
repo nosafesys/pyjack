@@ -10,11 +10,10 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from banner import banner
 import time
- 
-# TODO: replace i_links and e_links with checked_links and add counters for each instead
- 
+
+
 class LinkChecker():
- 
+
     def __init__(self, base_url, depth, no_threads, timeout, verify):
         self.base_url = base_url
         self.base_url_domain = urlparse(self.base_url).netloc
@@ -45,7 +44,17 @@ class LinkChecker():
  
     def init_colorama(self):
         colorama.init(autoreset=True)
- 
+
+    def target_info(self):
+        print("-"*100)
+        print(f"Target URL --> {self.base_url}")
+        print(f"Depth --> {self.depth}")
+        print(f"Threads --> {self.no_threads}")
+        print(f"Timeout --> {self.timeout}")
+        print(f"Verify SSL/TLS --> {self.verify}")
+        print("-"*100)
+        print("\n")
+
     def random_ua(self):
         # Function to randomly select a User-Agent for request
         user_agents = [
@@ -55,10 +64,10 @@ class LinkChecker():
             "Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/121.0",
             "Mozilla/5.0 (Linux; Android 10; HD1913) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36 EdgA/120.0.2210.84",
                         ]
- 
+
         ua = random.choice(user_agents)
         self.headers["User-agent"] = ua
- 
+
     def check_status(self, url):
         # Function to check the status of a URL and identify broken links
         try:
@@ -67,20 +76,22 @@ class LinkChecker():
             if r.status_code == 404:
                 with self.lock:
                     self.bl_count += 1
-                    print(f"{self.red}[>>] {url}")
+                    print(f"{self.red}[#] {url}")
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in check_status(): {e}")
- 
+
     def threaded_checker(self):
         # Function to create a thread pool and check the status of links
         try:
             with ThreadPoolExecutor(max_workers=self.no_threads) as executor:
                 executor.map(self.check_status, self.e_links)
+        except KeyboardInterrupt:
+            sys.exit()
         except Exception as e:
             print(f"{self.red}[!] An error occured in threaded_checker(): {e}")
- 
+
     def is_social(self, url):
         # Function to check if a URL belongs to a social media domain
         try:
@@ -91,7 +102,7 @@ class LinkChecker():
                     return True
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in is_social(): {e}")
- 
+
     def fetch_links(self, url):
         # Function to fetch and process links from a given URL
         try:
@@ -112,14 +123,14 @@ class LinkChecker():
                 elif self.base_url_domain in domain:
                     self.i_links.add(link)
                     links.add(link)
-                    print(f"{self.lightgreen}[→] Internal link found: {link} (source: {url})")
+                    print(f"{self.lightgreen}[~] Internal link found: {link} (source: {url})")
                 else:
                     self.e_links.add(link)
-                    print(f"{self.lightblue}[→] External link found: {link} (source: {url})")
+                    print(f"{self.lightblue}[~] External link found: {link} (source: {url})")
             return links
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in fetch_links(): {e}")
- 
+
     def crawl(self, url):
         # Function to perform the crawling operation
         try:
@@ -127,7 +138,7 @@ class LinkChecker():
                 self.crawl(link)
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in crawl(): {e}")
- 
+
     def summary(self):
         # Function to generate a summary of the crawling results
         try:
@@ -141,7 +152,7 @@ class LinkChecker():
                 print("[*] No social links found")
             if self.s_links:
                 for social_link in self.s_links:
-                    print(f"{self.cyan}[>>] {social_link}")
+                    print(f"{self.cyan}[->] {social_link}")
             print("-"*100)
             print("BROKEN LINKS:")
             if self.e_links:
@@ -157,7 +168,8 @@ class LinkChecker():
             print(f"[+] Total URLs: {total_urls}\n")
         except KeyboardInterrupt:
             sys.exit()
- 
+
+
 def main():
     # Main function to create a new LinkChecker instance
     try:
@@ -176,6 +188,7 @@ def main():
         linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify)
         linkchecker.init_colorama()
         banner(linkchecker.version)
+        linkchecker.target_info()
         time.sleep(1)
         if linkchecker.depth == 1:
             linkchecker.fetch_links(linkchecker.base_url)
@@ -190,6 +203,7 @@ def main():
         sys.exit()
     except Exception as e:
         print(f"{linkchecker.red_back}[!] An error occured: {e}")
- 
+
+
 if __name__ == "__main__":
     main()
