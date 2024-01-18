@@ -1,0 +1,4 @@
+# ignore all .txt files
+*.txt
+myenv/
+__pycache__/
