@@ -1,7 +1,15 @@
 
 # PyJack
 
-PyJack is a Python script designed for checking and validating links on websites. It utilizes multithreading and various Python libraries to efficiently scan a website and report broken or invalid links.
+PyJack is a Python script designed for checking if a link is broken, and thus hijackable.
+
+It fetches web pages and searches for links within href attributes found in the source of the web page. 
+
+Links are categorized as either internal och external. 
+Internal links are relative paths or links with the domain of the target (this includes subdomains).
+External links are links that point to other domains than that of the target.
+
+By default PyJack checks all external links for broken ones but specifically identifies social links.
 
 ## Requirements
 
@@ -27,10 +35,10 @@ python pyjack.py [options]
 Options include:
 
 - `-u`, `--url`: Specify the base URL to check.
-- `-d`, `--depth`: Define the depth of the link check.
-- `-t`, `--threads`: Set the number of threads for concurrent checking.
-- `--timeout`: Set the timeout for link checking.
-- `--verify`: Enable or disable SSL verification.
+- `-d`, `--depth`: Define the depth of the search.
+- `-t`, `--threads`: Set the number of threads for concurrent checking of broken links.
+- `--timeout`: Set the timeout for each HTTP request.
+- `--verify`: Enable or disable SSL/TLS verification.
 
 For example:
 
