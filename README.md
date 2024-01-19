@@ -34,15 +34,15 @@ python pyjack.py [options]
 
 Options include:
 
-- `-u`, `--url`: Specify the base URL to check.
+- `url`: Specify the base URL to check.
 - `-d`, `--depth`: Define the depth of the search.
 - `-t`, `--threads`: Set the number of threads for concurrent checking of broken links.
-- `--timeout`: Set the timeout for each HTTP request.
+- `-o`, `--timeout`: Set the timeout for each HTTP request.
 - `--verify`: Enable or disable SSL/TLS verification.
 
 For example:
 
 ```
-python pyjack.py -u https://example.com -d 2 -t 10 --timeout 5 --verify
+python pyjack.py https://example.com -d 2 -t 10 --timeout 5 --verify
 ```
 
