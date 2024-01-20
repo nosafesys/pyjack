@@ -38,7 +38,8 @@ Options include:
 - `-d`, `--depth`: Define the depth of the search.
 - `-t`, `--threads`: Set the number of threads for concurrent checking of broken links.
 - `-o`, `--timeout`: Set the timeout for each HTTP request.
-- `--verify`: Enable or disable SSL/TLS verification.
+- `-v`, `--verify`: Enable or disable SSL/TLS verification.
+- `--version`: Print the program version.
 
 For example:
 
