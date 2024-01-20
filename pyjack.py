@@ -9,8 +9,8 @@ import colorama
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from banner import banner
-import time
 
+VERSION = "v1.0.0"
 
 class LinkChecker():
 
@@ -20,7 +20,6 @@ class LinkChecker():
         self.depth = depth
         self.no_threads = no_threads
         self.timeout = timeout
-        self.version = "1.0.0"
         self.bl_count = 0
         self.no_warning = urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.lock = threading.Lock()
@@ -121,12 +120,12 @@ class LinkChecker():
                 if link in self.i_links or link in self.e_links:
                     continue
                 elif self.base_url_domain in domain:
+                    print(f"{self.lightgreen}[~] Internal link found: {link} (source: {url})")
                     self.i_links.add(link)
                     links.add(link)
-                    print(f"{self.lightgreen}[~] Internal link found: {link} (source: {url})")
                 else:
-                    self.e_links.add(link)
                     print(f"{self.lightblue}[~] External link found: {link} (source: {url})")
+                    self.e_links.add(link)
             return links
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in fetch_links(): {e}")
@@ -179,6 +178,7 @@ def main():
         parser.add_argument("-d", "--depth", help="Specify depth of links to be crawled (default:1)", default=1, type=int, choices=range(1, 4))
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
         parser.add_argument("--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
+        parser.add_argument("-v", "--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
         base_url = args.url
         depth = args.depth
@@ -187,9 +187,8 @@ def main():
         verify = args.verify
         linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify)
         linkchecker.init_colorama()
-        banner(linkchecker.version)
+        banner(VERSION)
         linkchecker.target_info()
-        time.sleep(1)
         if linkchecker.depth == 1:
             linkchecker.fetch_links(linkchecker.base_url)
         elif linkchecker.depth == 2:
