@@ -177,8 +177,8 @@ def main():
         parser.add_argument("-t", "--threads", help="Set no. of threads to be run at a time (default:10)", default=10, type=int)
         parser.add_argument("-d", "--depth", help="Specify depth of links to be crawled (default:1)", default=1, type=int, choices=range(1, 4))
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
-        parser.add_argument("--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
-        parser.add_argument("-v", "--version", action="version", version=f"PyJack {VERSION}")
+        parser.add_argument("-v", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
+        parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
         base_url = args.url
         depth = args.depth
