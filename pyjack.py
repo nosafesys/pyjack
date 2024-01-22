@@ -11,6 +11,9 @@ from concurrent.futures import ThreadPoolExecutor
 from banner import banner
 
 VERSION = "v1.0.0"
+with open("social_list.txt", "r") as f:
+    social_list = [line.strip() for line in f.readlines()]
+
 
 class LinkChecker():
 
@@ -26,12 +29,7 @@ class LinkChecker():
         self.i_links = set()
         self.e_links = set()
         self.s_links = set()
-        self.s_list = [
-            "twitter.com", "facebook.com", "instagram.com", "tumblr.com",
-            "linkedin.com", "youtube.com", "twitch.tv", "reddit.com",
-            "discord.com", "medium.com", "tiktok.com", "pinterest.com",
-            "snapchat.com", "telegram.org", "github.com", "quora.com",
-        ]
+        self.s_list = social_list
         self.headers = {}
         self.verify = verify
         self.red = colorama.Fore.RED
@@ -173,18 +171,25 @@ def main():
     # Main function to create a new LinkChecker instance
     try:
         parser = argparse.ArgumentParser(description="A quick way to crawl for broken links on a domain")
-        parser.add_argument("url", help="Specify the target URL")
+        parser.add_argument("-u", "--url", help="Specify the target URL")
         parser.add_argument("-t", "--threads", help="Set no. of threads to be run at a time (default:10)", default=10, type=int)
         parser.add_argument("-d", "--depth", help="Specify depth of links to be crawled (default:1)", default=1, type=int, choices=range(1, 4))
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
         parser.add_argument("-v", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
+        parser.add_argument("-l", "--list", help="Print default list", action="store_true")   
         args = parser.parse_args()
-        base_url = args.url
-        depth = args.depth
-        no_threads = args.threads
-        timeout = args.timeout
-        verify = args.verify
+        if args.list:
+            print(social_list)
+            sys.exit()
+        else:
+            if not args.url:
+                parser.error("the following arguments are required: url")
+            base_url = args.url
+            depth = args.depth
+            no_threads = args.threads
+            timeout = args.timeout
+            verify = args.verify
         linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify)
         linkchecker.init_colorama()
         banner(VERSION)
