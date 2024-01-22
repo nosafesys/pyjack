@@ -38,7 +38,7 @@ class LinkChecker():
         self.lightgreen = colorama.Fore.LIGHTGREEN_EX
         self.reset_back = colorama.Back.RESET
         self.cyan = colorama.Fore.CYAN
- 
+
     def init_colorama(self):
         colorama.init(autoreset=True)
 
@@ -127,8 +127,6 @@ class LinkChecker():
                     print(f"{self.lightblue}[~] External link found: {link} (source: {url})")
                     self.e_links.add(link)
             return links
-        except KeyboardInterrupt:
-            sys.exit()
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in fetch_links(): {e}")
 
@@ -137,8 +135,6 @@ class LinkChecker():
         try:
             for link in self.fetch_links(url):
                 self.crawl(link)
-        except KeyboardInterrupt:
-            sys.exit()
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in crawl(): {e}")
 
