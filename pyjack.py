@@ -8,12 +8,8 @@ import random
 import colorama
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from banner import banner
 
 VERSION = "v1.0.0"
-with open("social_list.txt", "r") as f:
-    social_list = [line.strip() for line in f.readlines()]
-
 
 class LinkChecker():
 
@@ -23,6 +19,7 @@ class LinkChecker():
         self.depth = depth
         self.no_threads = no_threads
         self.timeout = timeout
+        self.session = requests.Session()
         self.bl_count = 0
         self.no_warning = urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.lock = threading.Lock()
@@ -39,16 +36,40 @@ class LinkChecker():
         self.reset_back = colorama.Back.RESET
         self.cyan = colorama.Fore.CYAN
 
+    def banner(self, version):
+        # Function to print the banner and version
+        banner = """
+ 
+                               ███                     █████    
+                          ░░░                     ░░███      
+ ████████  █████ ████     █████  ██████    ██████  ░███ █████
+░░███░░███░░███ ░███     ░░███  ░░░░░███  ███░░███ ░███░░███
+ ░███ ░███ ░███ ░███      ░███   ███████ ░███ ░░░  ░██████░  
+ ░███ ░███ ░███ ░███      ░███  ███░░███ ░███  ███ ░███░░███
+ ░███████  ░░███████      ░███ ░░████████░░██████  ████ █████
+ ░███░░░    ░░░░░███      ░███  ░░░░░░░░  ░░░░░░  ░░░░ ░░░░░
+ ░███       ███ ░███  ███ ░███                              
+ █████     ░░██████  ░░██████                                
+░░░░░       ░░░░░░    ░░░░░░                                
+    """
+        print(banner)
+        print("Author:     nosafesys")
+        print(f"Version:    {version}\n")
+        print("Follow my socials:")
+        print("Github: https://github.com/nosafesys")
+        print("Twitter: https://twitter.com/nosafesys")
+        print("Instagram: https://instagram.com/_vaxbyv/\n")
+    
     def init_colorama(self):
         colorama.init(autoreset=True)
 
     def target_info(self):
         print("-"*100)
-        print(f"Target URL --> {self.base_url}")
-        print(f"Depth --> {self.depth}")
-        print(f"Threads --> {self.no_threads}")
-        print(f"Timeout --> {self.timeout}")
-        print(f"Verify SSL/TLS --> {self.verify}")
+        print(f":: Target URL       {self.base_url}")
+        print(f":: Depth            {self.depth}")
+        print(f":: Threads          {self.no_threads}")
+        print(f":: Timeout          {self.timeout}")
+        print(f":: Verify SSL/TLS   {self.verify}")
         print("-"*100)
         print("\n")
 
@@ -79,6 +100,9 @@ class LinkChecker():
         except Exception as e:
             print(f"{self.red_back}[!] An error occured in check_status(): {e}")
 
+    def close(self):
+        self.session.close()
+
     def threaded_checker(self):
         # Function to create a thread pool and check the status of links
         try:
@@ -107,7 +131,7 @@ class LinkChecker():
         try:
             links = set()
             self.random_ua()
-            r = requests.get(url, headers=self.headers, timeout=self.timeout, verify=self.verify)
+            r = self.session.get(url, headers=self.headers, timeout=self.timeout, verify=self.verify)
             soup = BeautifulSoup(r.content, "html.parser")
             a_elements = soup.find_all("a")
             for element in a_elements:
@@ -194,7 +218,7 @@ def main():
             verify = args.verify
         linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify)
         linkchecker.init_colorama()
-        banner(VERSION)
+        linkchecker.banner(VERSION)
         linkchecker.target_info()
         if linkchecker.depth == 1:
             linkchecker.fetch_links(linkchecker.base_url)
@@ -203,8 +227,10 @@ def main():
                 linkchecker.fetch_links(link)
         elif linkchecker.depth == 3:
             linkchecker.crawl(linkchecker.base_url)
+        linkchecker.close()
         linkchecker.summary()
     except KeyboardInterrupt:
+        linkchecker.close()
         linkchecker.summary()
         sys.exit()
     except Exception as e:
@@ -212,4 +238,6 @@ def main():
 
 
 if __name__ == "__main__":
+    with open("social_list.txt", "r") as f:
+        social_list = [line.strip() for line in f.readlines()]
     main()
