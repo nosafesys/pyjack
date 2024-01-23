@@ -8,12 +8,13 @@ import random
 import colorama
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 VERSION = "v1.0.0"
 
 class LinkChecker():
 
-    def __init__(self, base_url, depth, no_threads, timeout, verify):
+    def __init__(self, base_url, depth, no_threads, timeout, verify, no_verbose):
         self.base_url = base_url
         self.base_url_domain = urlparse(self.base_url).netloc
         self.depth = depth
@@ -29,6 +30,7 @@ class LinkChecker():
         self.s_list = social_list
         self.headers = {}
         self.verify = verify
+        self.no_verbose = no_verbose
         self.red = colorama.Fore.RED
         self.red_back = colorama.Back.RED
         self.lightblue = colorama.Fore.LIGHTBLUE_EX
@@ -147,11 +149,13 @@ class LinkChecker():
                 if link in self.i_links or link in self.e_links:
                     continue
                 elif self.base_url_domain in domain:
-                    print(f"{self.lightgreen}[~] Internal link found: {link} (source: {url})")
+                    if not self.no_verbose:
+                        print(f"{self.lightgreen}[~] Internal link found: {link} (source: {url})")
                     self.i_links.add(link)
                     links.add(link)
                 else:
-                    print(f"{self.lightblue}[~] External link found: {link} (source: {url})")
+                    if not self.no_verbose:
+                        print(f"{self.lightblue}[~] External link found: {link} (source: {url})")
                     self.e_links.add(link)
             return links
         except Exception as e:
@@ -168,7 +172,7 @@ class LinkChecker():
     def summary(self):
         # Function to generate a summary of the crawling results
         try:
-            print("\nGenerating summary...")
+            print(f"Search ended at {datetime.now()}")
             print("-"*100)
             print("SOCIAL LINKS:")
 
@@ -208,6 +212,7 @@ def main():
         parser.add_argument("-d", "--depth", help="Specify depth of links to be crawled (default:1)", default=1, type=int, choices=range(1, 4))
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
         parser.add_argument("-v", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
+        parser.add_argument("-n", "--no-verbose", help="Disable verbose output", action="store_true")
         parser.add_argument("-l", "--list", help="Print default list", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
@@ -222,13 +227,15 @@ def main():
             depth = args.depth
             no_threads = args.threads
             timeout = args.timeout
+            no_verbose = args.no_verbose
             verify = args.verify
         
-        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify)
+        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, no_verbose)
         linkchecker.init_colorama()
         linkchecker.banner(VERSION)
         linkchecker.target_info()
-        
+
+        print(f"Search started at {datetime.now()}")
         if linkchecker.depth == 1:
             linkchecker.fetch_links(linkchecker.base_url)
         elif linkchecker.depth == 2:
