@@ -39,6 +39,7 @@ Options include:
 - `-t`, `--threads`: Set the number of threads for concurrent checking of broken links.
 - `-o`, `--timeout`: Set the timeout for each HTTP request.
 - `-v`, `--verify`: Enable or disable SSL/TLS verification.
+- `-`, `--no-verbose`: Disable verbose output.
 - `-l`, `--list`: Print default list.
 - `--version`: Print the program version.
 
