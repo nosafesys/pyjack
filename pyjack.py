@@ -91,6 +91,7 @@ class LinkChecker():
         try:
             self.random_ua()
             r = requests.get(url, headers=self.headers, timeout=self.timeout, verify=self.verify)
+            
             if r.status_code == 404:
                 with self.lock:
                     self.bl_count += 1
@@ -118,6 +119,7 @@ class LinkChecker():
         try:
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
+
             for social_domain in self.s_list:
                 if social_domain in domain:
                     return True
@@ -134,6 +136,7 @@ class LinkChecker():
             r = self.session.get(url, headers=self.headers, timeout=self.timeout, verify=self.verify)
             soup = BeautifulSoup(r.content, "html.parser")
             a_elements = soup.find_all("a")
+            
             for element in a_elements:
                 href = urljoin(url, element.get("href"))
                 parsed_href = urlparse(href)
@@ -168,6 +171,7 @@ class LinkChecker():
             print("\nGenerating summary...")
             print("-"*100)
             print("SOCIAL LINKS:")
+
             for external_link in self.e_links:
                 if self.is_social(external_link):
                     self.s_links.add(external_link)
@@ -176,6 +180,7 @@ class LinkChecker():
             if self.s_links:
                 for social_link in self.s_links:
                     print(f"{self.cyan}[->] {social_link}")
+            
             print("-"*100)
             print("BROKEN LINKS:")
             if self.e_links:
@@ -183,6 +188,7 @@ class LinkChecker():
             if self.bl_count == 0:
                 print("[*] No broken links found")
             print("-"*100)
+
             print("SUMMARY:")
             print(f"[+] Internal links: {len(self.i_links)}")
             print(f"[+] External links: {len(self.e_links)}")
@@ -205,6 +211,7 @@ def main():
         parser.add_argument("-l", "--list", help="Print default list", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
+    
         if args.list:
             print(social_list)
             sys.exit()
@@ -216,10 +223,12 @@ def main():
             no_threads = args.threads
             timeout = args.timeout
             verify = args.verify
+        
         linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify)
         linkchecker.init_colorama()
         linkchecker.banner(VERSION)
         linkchecker.target_info()
+        
         if linkchecker.depth == 1:
             linkchecker.fetch_links(linkchecker.base_url)
         elif linkchecker.depth == 2:
@@ -227,8 +236,10 @@ def main():
                 linkchecker.fetch_links(link)
         elif linkchecker.depth == 3:
             linkchecker.crawl(linkchecker.base_url)
+
         linkchecker.close()
         linkchecker.summary()
+
     except KeyboardInterrupt:
         linkchecker.close()
         linkchecker.summary()
