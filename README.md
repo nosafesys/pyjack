@@ -9,7 +9,7 @@ Links are categorized as either internal och external.
 Internal links are relative paths or links with the domain of the target (this includes subdomains).
 External links are links that point to other domains than that of the target.
 
-By default PyJack checks all external links for broken ones but specifically identifies social links.
+By default PyJack only checks social links for broken ones.
 
 ## Requirements
 
