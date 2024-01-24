@@ -32,14 +32,16 @@ To use PyJack, run the script from the command line with the following syntax:
 python pyjack.py [options]
 ```
 
+PyJack uses a list of social domains for identifying social links. The default list can be found in the same directory as the python script and can be modified to suit your needs.
+
 Options include:
 
 - `url`: Specify the base URL to check.
 - `-d`, `--depth`: Define the depth of the search.
 - `-t`, `--threads`: Set the number of threads for concurrent checking of broken links.
 - `-o`, `--timeout`: Set the timeout for each HTTP request.
-- `-v`, `--verify`: Enable or disable SSL/TLS verification.
-- `-`, `--no-verbose`: Disable verbose output.
+- `-r`, `--verify`: Enable or disable SSL/TLS verification.
+- `-v`, `--verbosity`: Verbosity level.
 - `-l`, `--list`: Print default list.
 - `--version`: Print the program version.
 

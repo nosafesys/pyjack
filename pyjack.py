@@ -14,7 +14,7 @@ VERSION = "v1.0.0"
 
 class LinkChecker():
 
-    def __init__(self, base_url, depth, no_threads, timeout, verify, no_verbose):
+    def __init__(self, base_url, depth, no_threads, timeout, verify, verbosity):
         self.base_url = base_url
         self.base_url_domain = urlparse(self.base_url).netloc
         self.depth = depth
@@ -28,15 +28,14 @@ class LinkChecker():
         self.e_links = set()
         self.s_links = set()
         self.s_list = social_list
-        self.headers = {}
         self.verify = verify
-        self.no_verbose = no_verbose
-        self.red = colorama.Fore.RED
-        self.red_back = colorama.Back.RED
-        self.lightblue = colorama.Fore.LIGHTBLUE_EX
-        self.lightgreen = colorama.Fore.LIGHTGREEN_EX
-        self.reset_back = colorama.Back.RESET
-        self.cyan = colorama.Fore.CYAN
+        self.verbosity = verbosity
+        self.RED = colorama.Fore.RED
+        self.RED_BACK = colorama.Back.RED
+        self.YELLOW_BACK = colorama.Back.YELLOW
+        self.LIGHTBLUE = colorama.Fore.LIGHTBLUE_EX
+        self.LIGHTGREEN = colorama.Fore.LIGHTGREEN_EX
+        self.CYAN = colorama.Fore.CYAN
 
     def banner(self, version):
         # Function to print the banner and version
@@ -75,7 +74,7 @@ class LinkChecker():
         print("-"*100)
         print("\n")
 
-    def random_ua(self):
+    """def random_ua(self):
         # Function to randomly select a User-Agent for request
         user_agents = [
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.1",
@@ -86,22 +85,23 @@ class LinkChecker():
                         ]
 
         ua = random.choice(user_agents)
-        self.headers["User-agent"] = ua
+        self.headers["User-agent"] = ua"""
 
     def check_status(self, url):
         # Function to check the status of a URL and identify broken links
         try:
-            self.random_ua()
-            r = requests.get(url, headers=self.headers, timeout=self.timeout, verify=self.verify)
-            
+            r = requests.get(url, timeout=self.timeout, verify=self.verify)
             if r.status_code == 404:
                 with self.lock:
                     self.bl_count += 1
-                    print(f"{self.red}[#] {url}")
+                    if url in self.s_links:
+                        print(f"{self.YELLOW_BACK}{self.RED}[#] {url}")
+                    else:
+                        print(f"{self.RED}[#] {url}")
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
-            print(f"{self.red_back}[!] An error occured in check_status(): {e}")
+            print(f"{self.RED_BACK}[!] An error occured in check_status(): {e}")
 
     def close(self):
         self.session.close()
@@ -114,7 +114,7 @@ class LinkChecker():
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
-            print(f"{self.red}[!] An error occured in threaded_checker(): {e}")
+            print(f"{self.RED_BACK}[!] An error occured in threaded_checker(): {e}")
 
     def is_social(self, url):
         # Function to check if a URL belongs to a social media domain
@@ -128,14 +128,13 @@ class LinkChecker():
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
-            print(f"{self.red_back}[!] An error occured in is_social(): {e}")
+            print(f"{self.RED_BACK}[!] An error occured in is_social(): {e}")
 
     def fetch_links(self, url):
         # Function to fetch and process links from a given URL
         try:
             links = set()
-            self.random_ua()
-            r = self.session.get(url, headers=self.headers, timeout=self.timeout, verify=self.verify)
+            r = self.session.get(url, timeout=self.timeout, verify=self.verify)
             soup = BeautifulSoup(r.content, "html.parser")
             a_elements = soup.find_all("a")
             
@@ -149,17 +148,25 @@ class LinkChecker():
                 if link in self.i_links or link in self.e_links:
                     continue
                 elif self.base_url_domain in domain:
-                    if not self.no_verbose:
-                        print(f"{self.lightgreen}[~] Internal link found: {link} (source: {url})")
+                    if self.verbosity == 1:
+                        pass
+                    elif self.verbosity == 2:
+                        print(f"{self.LIGHTGREEN}[~] Internal link found: {link}")
+                    else:
+                        print(f"{self.LIGHTGREEN}[~] Internal link found: {link} (source: {url})")
                     self.i_links.add(link)
                     links.add(link)
                 else:
-                    if not self.no_verbose:
-                        print(f"{self.lightblue}[~] External link found: {link} (source: {url})")
+                    if self.verbosity == 1:
+                        pass
+                    elif self.verbosity == 2:
+                        print(f"{self.LIGHTBLUE}[~] External link found: {link}")
+                    else:
+                        print(f"{self.LIGHTBLUE}[~] External link found: {link} (source: {url})")
                     self.e_links.add(link)
             return links
         except Exception as e:
-            print(f"{self.red_back}[!] An error occured in fetch_links(): {e}")
+            print(f"{self.RED_BACK}[!] An error occured in fetch_links(): {e}")
 
     def crawl(self, url):
         # Function to perform the crawling operation
@@ -167,7 +174,7 @@ class LinkChecker():
             for link in self.fetch_links(url):
                 self.crawl(link)
         except Exception as e:
-            print(f"{self.red_back}[!] An error occured in crawl(): {e}")
+            print(f"{self.RED_BACK}[!] An error occured in crawl(): {e}")
 
     def summary(self):
         # Function to generate a summary of the crawling results
@@ -183,7 +190,7 @@ class LinkChecker():
                 print("[*] No social links found")
             if self.s_links:
                 for social_link in self.s_links:
-                    print(f"{self.cyan}[->] {social_link}")
+                    print(f"{self.CYAN}[->] {social_link}")
             
             print("-"*100)
             print("BROKEN LINKS:")
@@ -211,8 +218,8 @@ def main():
         parser.add_argument("-t", "--threads", help="Set no. of threads to be run at a time (default:10)", default=10, type=int)
         parser.add_argument("-d", "--depth", help="Specify depth of links to be crawled (default:1)", default=1, type=int, choices=range(1, 4))
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
-        parser.add_argument("-v", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
-        parser.add_argument("-n", "--no-verbose", help="Disable verbose output", action="store_true")
+        parser.add_argument("-r", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
+        parser.add_argument("-v", "--verbosity", help="Verbosity level (default:2)", default=2, type=int, choices=(range(1, 4)))
         parser.add_argument("-l", "--list", help="Print default list", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
@@ -227,10 +234,10 @@ def main():
             depth = args.depth
             no_threads = args.threads
             timeout = args.timeout
-            no_verbose = args.no_verbose
+            verbosity = args.verbosity
             verify = args.verify
         
-        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, no_verbose)
+        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, verbosity)
         linkchecker.init_colorama()
         linkchecker.banner(VERSION)
         linkchecker.target_info()
@@ -252,7 +259,7 @@ def main():
         linkchecker.summary()
         sys.exit()
     except Exception as e:
-        print(f"{linkchecker.red_back}[!] An error occured: {e}")
+        print(f"{linkchecker.RED_BACK}[!] An error occured: {e}")
 
 
 if __name__ == "__main__":
