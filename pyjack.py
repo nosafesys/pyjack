@@ -4,13 +4,13 @@ from urllib.parse import urlparse, urljoin
 import urllib3
 import sys
 import argparse
-import random
 import colorama
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 VERSION = "v1.0.0"
+
 
 class LinkChecker():
 
@@ -40,7 +40,7 @@ class LinkChecker():
     def banner(self, version):
         # Function to print the banner and version
         banner = """
- 
+
                                ███                     █████    
                           ░░░                     ░░███      
  ████████  █████ ████     █████  ██████    ██████  ░███ █████
@@ -60,7 +60,7 @@ class LinkChecker():
         print("Github: https://github.com/nosafesys")
         print("Twitter: https://twitter.com/nosafesys")
         print("Instagram: https://instagram.com/_vaxbyv/\n")
-    
+
     def init_colorama(self):
         colorama.init(autoreset=True)
 
@@ -74,19 +74,6 @@ class LinkChecker():
         print("-"*100)
         print("\n")
 
-    """def random_ua(self):
-        # Function to randomly select a User-Agent for request
-        user_agents = [
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.1",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3",
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1.2 Mobile/15E148 Safari/604.",
-            "Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/121.0",
-            "Mozilla/5.0 (Linux; Android 10; HD1913) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36 EdgA/120.0.2210.84",
-                        ]
-
-        ua = random.choice(user_agents)
-        self.headers["User-agent"] = ua"""
-
     def check_status(self, url):
         # Function to check the status of a URL and identify broken links
         try:
@@ -94,10 +81,7 @@ class LinkChecker():
             if r.status_code == 404:
                 with self.lock:
                     self.bl_count += 1
-                    if url in self.s_links:
-                        print(f"{self.YELLOW_BACK}{self.RED}[#] {url}")
-                    else:
-                        print(f"{self.RED}[#] {url}")
+                    print(f"{self.YELLOW_BACK}{self.RED}[#] {url}")
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
@@ -110,7 +94,7 @@ class LinkChecker():
         # Function to create a thread pool and check the status of links
         try:
             with ThreadPoolExecutor(max_workers=self.no_threads) as executor:
-                executor.map(self.check_status, self.e_links)
+                executor.map(self.check_status, self.s_links)
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
@@ -137,7 +121,6 @@ class LinkChecker():
             r = self.session.get(url, timeout=self.timeout, verify=self.verify)
             soup = BeautifulSoup(r.content, "html.parser")
             a_elements = soup.find_all("a")
-            
             for element in a_elements:
                 href = urljoin(url, element.get("href"))
                 parsed_href = urlparse(href)
@@ -182,7 +165,6 @@ class LinkChecker():
             print(f"Search ended at {datetime.now()}")
             print("-"*100)
             print("SOCIAL LINKS:")
-
             for external_link in self.e_links:
                 if self.is_social(external_link):
                     self.s_links.add(external_link)
@@ -191,15 +173,13 @@ class LinkChecker():
             if self.s_links:
                 for social_link in self.s_links:
                     print(f"{self.CYAN}[->] {social_link}")
-            
             print("-"*100)
             print("BROKEN LINKS:")
-            if self.e_links:
+            if self.s_links:
                 self.threaded_checker()
             if self.bl_count == 0:
                 print("[*] No broken links found")
             print("-"*100)
-
             print("SUMMARY:")
             print(f"[+] Internal links: {len(self.i_links)}")
             print(f"[+] External links: {len(self.e_links)}")
@@ -223,7 +203,6 @@ def main():
         parser.add_argument("-l", "--list", help="Print default list", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
-    
         if args.list:
             print(social_list)
             sys.exit()
@@ -236,12 +215,10 @@ def main():
             timeout = args.timeout
             verbosity = args.verbosity
             verify = args.verify
-        
         linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, verbosity)
         linkchecker.init_colorama()
         linkchecker.banner(VERSION)
         linkchecker.target_info()
-
         print(f"Search started at {datetime.now()}")
         if linkchecker.depth == 1:
             linkchecker.fetch_links(linkchecker.base_url)
@@ -250,10 +227,8 @@ def main():
                 linkchecker.fetch_links(link)
         elif linkchecker.depth == 3:
             linkchecker.crawl(linkchecker.base_url)
-
         linkchecker.close()
         linkchecker.summary()
-
     except KeyboardInterrupt:
         linkchecker.close()
         linkchecker.summary()
