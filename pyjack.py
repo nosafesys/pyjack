@@ -8,6 +8,11 @@ import colorama
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 VERSION = "v1.0.0"
 
@@ -32,7 +37,7 @@ class LinkChecker():
         self.verbosity = verbosity
         self.RED = colorama.Fore.RED
         self.RED_BACK = colorama.Back.RED
-        self.YELLOW_BACK = colorama.Back.YELLOW
+        self.GREEN = colorama.Fore.GREEN
         self.LIGHTBLUE = colorama.Fore.LIGHTBLUE_EX
         self.LIGHTGREEN = colorama.Fore.LIGHTGREEN_EX
         self.CYAN = colorama.Fore.CYAN
@@ -77,15 +82,38 @@ class LinkChecker():
     def check_status(self, url):
         # Function to check the status of a URL and identify broken links
         try:
+            indicators = []
+            options = Options()
+            options.add_argument("-headless")
+            driver = webdriver.Firefox(options=options)
             r = requests.get(url, timeout=self.timeout, verify=self.verify)
             if r.status_code == 404:
                 with self.lock:
                     self.bl_count += 1
-                    print(f"{self.YELLOW_BACK}{self.RED}[#] {url}")
+                    print(f"{self.RED}{url} 404 NOT FOUND")
+            if r.status_code == 200:
+                driver.get(url)
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, 'body'))
+                )
+                page_text = driver.find_element(By.TAG_NAME, 'body').text
+                for str in strings:
+                    if str in page_text:
+                        indicators.append(str)
+                if indicators:
+                    self.bl_count += 1
+                    print(f"{self.GREEN}{url} 200 OK - indicators found")
+                    for indicator in indicators:
+                        print(f"{self.RED}--> {indicator}")
+                else:
+                    print(f"{self.GREEN}{url} 200 OK - no indicators found")
+
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
             print(f"{self.RED_BACK}[!] An error occured in check_status(): {e}")
+        finally:
+            driver.quit()
 
     def close(self):
         self.session.close()
@@ -240,4 +268,6 @@ def main():
 if __name__ == "__main__":
     with open("social_list.txt", "r") as f:
         social_list = [line.strip() for line in f.readlines()]
+    with open("strings.txt", "r") as f:
+        strings = [line.strip() for line in f.readlines()]
     main()
