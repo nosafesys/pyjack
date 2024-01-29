@@ -8,16 +8,13 @@ import colorama
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.common.by import By
 
 VERSION = "v1.0.0"
 
 
 class LinkChecker():
 
-    def __init__(self, base_url, depth, no_threads, timeout, verify, verbosity, content_search):
+    def __init__(self, base_url, depth, no_threads, timeout, verify, verbosity):
         self.base_url = base_url
         self.base_url_domain = urlparse(self.base_url).netloc
         self.depth = depth
@@ -25,7 +22,6 @@ class LinkChecker():
         self.timeout = timeout
         self.session = requests.Session()
         self.bl_count = 0
-        self.not_broken = []
         self.no_warning = urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.lock = threading.Lock()
         self.i_links = set()
@@ -34,7 +30,6 @@ class LinkChecker():
         self.s_list = social_list
         self.verify = verify
         self.verbosity = verbosity
-        self.content_search = content_search
         self.RED = colorama.Fore.RED
         self.RED_BACK = colorama.Back.RED
         self.GREEN = colorama.Fore.GREEN
@@ -87,49 +82,14 @@ class LinkChecker():
                 with self.lock:
                     self.bl_count += 1
                 print(f"{self.RED}{url} 404 NOT FOUND")
-            if r.status_code == 200 and self.content_search:
-                with self.lock:
-                    self.not_broken.append(url)
         except Exception as e:
             print(f"{self.RED_BACK}[!] An error occured in check_status(): {e}")
-
-    def content_searcher(self, url):
-        try:
-            indicators = []
-            options = Options()
-            options.add_argument("-headless")
-            driver = webdriver.Firefox(options=options)
-            driver.get(url)
-            page_text = driver.find_element(By.TAG_NAME, 'body').text
-            for str in strings:
-                if str in page_text:
-                    indicators.append(str)
-            if indicators:
-                with self.lock:
-                    self.bl_count += 1
-                print(f"{self.GREEN}{url} - INDICATORS FOUND")
-                for indicator in indicators:
-                    print(f"{self.RED}--> {indicator}")
-        except Exception as e:
-            print(f"{self.RED_BACK}[!] An error occured in content_search(): {e}")
-        finally:
-            driver.quit()
-
-    def threader_b(self):
-        # Function to create a thread pool for opening browser sessions
-        try:
-            with ThreadPoolExecutor(max_workers=self.no_threads) as executor:
-                executor.map(self.content_searcher, self.not_broken)
-        except KeyboardInterrupt:
-            sys.exit()
-        except Exception as e:
-            print(f"{self.RED_BACK}[!] An error occured in threader_b(): {e}")
 
     def close(self):
         # Function to close HTTP session
         self.session.close()
 
-    def threader_a(self):
+    def threader(self):
         # Function to create a thread pool for checking the status of links
         try:
             with ThreadPoolExecutor(max_workers=self.no_threads) as executor:
@@ -144,7 +104,6 @@ class LinkChecker():
         try:
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
-
             for social_domain in self.s_list:
                 if social_domain in domain:
                     return True
@@ -213,9 +172,7 @@ class LinkChecker():
             print("-"*100)
             print("BROKEN LINKS:")
             if self.s_links:
-                self.threader_a()
-            if self.content_search:
-                self.threader_b()
+                self.threader()
             if self.bl_count == 0:
                 print("[*] No broken links found")
             print("-"*100)
@@ -239,7 +196,6 @@ def main():
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
         parser.add_argument("-r", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
         parser.add_argument("-v", "--verbosity", help="Verbosity level (default:2)", default=2, type=int, choices=(range(1, 4)))
-        parser.add_argument("-c", "--content-search", help="Peform a content search (default:True)", action="store_true")
         parser.add_argument("-l", "--list", help="Print default list", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
@@ -255,8 +211,7 @@ def main():
             timeout = args.timeout
             verbosity = args.verbosity
             verify = args.verify
-            content_search = args.content_search
-        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, verbosity, content_search)
+        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, verbosity)
         linkchecker.init_colorama()
         linkchecker.banner(VERSION)
         linkchecker.target_info()
@@ -280,6 +235,4 @@ def main():
 if __name__ == "__main__":
     with open("social_list.txt", "r") as f:
         social_list = [line.strip() for line in f.readlines()]
-    with open("strings.txt", "r") as f:
-        strings = [line.strip() for line in f.readlines()]
     main()
