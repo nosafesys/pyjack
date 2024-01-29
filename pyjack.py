@@ -11,8 +11,6 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 VERSION = "v1.0.0"
 
@@ -89,12 +87,9 @@ class LinkChecker():
                 with self.lock:
                     self.bl_count += 1
                 print(f"{self.RED}{url} 404 NOT FOUND")
-            if r.status_code == 200:
+            if r.status_code == 200 and self.content_search:
                 with self.lock:
                     self.not_broken.append(url)
-                print(f"{self.GREEN}{url} 200 OK")
-        except KeyboardInterrupt:
-            sys.exit()
         except Exception as e:
             print(f"{self.RED_BACK}[!] An error occured in check_status(): {e}")
 
@@ -115,10 +110,6 @@ class LinkChecker():
                 print(f"{self.GREEN}{url} - INDICATORS FOUND")
                 for indicator in indicators:
                     print(f"{self.RED}--> {indicator}")
-            else:
-                print(f"{self.GREEN}{url} - NO INDICATORS FOUND")
-        except KeyboardInterrupt:
-            sys.exit()
         except Exception as e:
             print(f"{self.RED_BACK}[!] An error occured in content_search(): {e}")
         finally:
@@ -157,8 +148,6 @@ class LinkChecker():
             for social_domain in self.s_list:
                 if social_domain in domain:
                     return True
-        except KeyboardInterrupt:
-            sys.exit()
         except Exception as e:
             print(f"{self.RED_BACK}[!] An error occured in is_social(): {e}")
 
@@ -226,7 +215,6 @@ class LinkChecker():
             if self.s_links:
                 self.threader_a()
             if self.content_search:
-                print("-"*100)
                 self.threader_b()
             if self.bl_count == 0:
                 print("[*] No broken links found")
@@ -237,8 +225,8 @@ class LinkChecker():
             print(f"[+] Broken links: {self.bl_count}")
             total_urls = len(self.i_links) + len(self.e_links)
             print(f"[+] Total URLs: {total_urls}\n")
-        except KeyboardInterrupt:
-            sys.exit()
+        except Exception as e:
+            print(f"{self.RED_BACK}[!] An error occured in crawl(): {e}")
 
 
 def main():
@@ -285,7 +273,6 @@ def main():
     except KeyboardInterrupt:
         linkchecker.close()
         linkchecker.summary()
-        sys.exit()
     except Exception as e:
         print(f"{linkchecker.RED_BACK}[!] An error occured: {e}")
 
