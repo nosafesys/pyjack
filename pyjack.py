@@ -19,7 +19,7 @@ VERSION = "v1.0.0"
 
 class LinkChecker():
 
-    def __init__(self, base_url, depth, no_threads, timeout, verify, verbosity):
+    def __init__(self, base_url, depth, no_threads, timeout, verify, verbosity, content_search):
         self.base_url = base_url
         self.base_url_domain = urlparse(self.base_url).netloc
         self.depth = depth
@@ -27,6 +27,7 @@ class LinkChecker():
         self.timeout = timeout
         self.session = requests.Session()
         self.bl_count = 0
+        self.not_broken = []
         self.no_warning = urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.lock = threading.Lock()
         self.i_links = set()
@@ -35,6 +36,7 @@ class LinkChecker():
         self.s_list = social_list
         self.verify = verify
         self.verbosity = verbosity
+        self.content_search = content_search
         self.RED = colorama.Fore.RED
         self.RED_BACK = colorama.Back.RED
         self.GREEN = colorama.Fore.GREEN
@@ -82,51 +84,69 @@ class LinkChecker():
     def check_status(self, url):
         # Function to check the status of a URL and identify broken links
         try:
-            indicators = []
-            options = Options()
-            options.add_argument("-headless")
-            driver = webdriver.Firefox(options=options)
             r = requests.get(url, timeout=self.timeout, verify=self.verify)
             if r.status_code == 404:
                 with self.lock:
                     self.bl_count += 1
-                    print(f"{self.RED}{url} 404 NOT FOUND")
+                print(f"{self.RED}{url} 404 NOT FOUND")
             if r.status_code == 200:
-                driver.get(url)
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.TAG_NAME, 'body'))
-                )
-                page_text = driver.find_element(By.TAG_NAME, 'body').text
-                for str in strings:
-                    if str in page_text:
-                        indicators.append(str)
-                if indicators:
-                    self.bl_count += 1
-                    print(f"{self.GREEN}{url} 200 OK - indicators found")
-                    for indicator in indicators:
-                        print(f"{self.RED}--> {indicator}")
-                else:
-                    print(f"{self.GREEN}{url} 200 OK - no indicators found")
-
+                with self.lock:
+                    self.not_broken.append(url)
+                print(f"{self.GREEN}{url} 200 OK")
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
             print(f"{self.RED_BACK}[!] An error occured in check_status(): {e}")
+
+    def content_searcher(self, url):
+        try:
+            indicators = []
+            options = Options()
+            options.add_argument("-headless")
+            driver = webdriver.Firefox(options=options)
+            driver.get(url)
+            page_text = driver.find_element(By.TAG_NAME, 'body').text
+            for str in strings:
+                if str in page_text:
+                    indicators.append(str)
+            if indicators:
+                with self.lock:
+                    self.bl_count += 1
+                print(f"{self.GREEN}{url} - INDICATORS FOUND")
+                for indicator in indicators:
+                    print(f"{self.RED}--> {indicator}")
+            else:
+                print(f"{self.GREEN}{url} - NO INDICATORS FOUND")
+        except KeyboardInterrupt:
+            sys.exit()
+        except Exception as e:
+            print(f"{self.RED_BACK}[!] An error occured in content_search(): {e}")
         finally:
             driver.quit()
 
+    def threader_b(self):
+        # Function to create a thread pool for opening browser sessions
+        try:
+            with ThreadPoolExecutor(max_workers=self.no_threads) as executor:
+                executor.map(self.content_searcher, self.not_broken)
+        except KeyboardInterrupt:
+            sys.exit()
+        except Exception as e:
+            print(f"{self.RED_BACK}[!] An error occured in threader_b(): {e}")
+
     def close(self):
+        # Function to close HTTP session
         self.session.close()
 
-    def threaded_checker(self):
-        # Function to create a thread pool and check the status of links
+    def threader_a(self):
+        # Function to create a thread pool for checking the status of links
         try:
             with ThreadPoolExecutor(max_workers=self.no_threads) as executor:
                 executor.map(self.check_status, self.s_links)
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
-            print(f"{self.RED_BACK}[!] An error occured in threaded_checker(): {e}")
+            print(f"{self.RED_BACK}[!] An error occured in threader_a(): {e}")
 
     def is_social(self, url):
         # Function to check if a URL belongs to a social media domain
@@ -204,7 +224,10 @@ class LinkChecker():
             print("-"*100)
             print("BROKEN LINKS:")
             if self.s_links:
-                self.threaded_checker()
+                self.threader_a()
+            if self.content_search:
+                print("-"*100)
+                self.threader_b()
             if self.bl_count == 0:
                 print("[*] No broken links found")
             print("-"*100)
@@ -228,6 +251,7 @@ def main():
         parser.add_argument("-o", "--timeout", help="Specify timeout for each HTTP request (default:5)", default=5, type=int)
         parser.add_argument("-r", "--verify", help="Verify SSL certificates (More secure, but more prone to errors)", action="store_true")
         parser.add_argument("-v", "--verbosity", help="Verbosity level (default:2)", default=2, type=int, choices=(range(1, 4)))
+        parser.add_argument("-c", "--content-search", help="Peform a content search (default:True)", action="store_true")
         parser.add_argument("-l", "--list", help="Print default list", action="store_true")
         parser.add_argument("--version", action="version", version=f"PyJack {VERSION}")
         args = parser.parse_args()
@@ -243,7 +267,8 @@ def main():
             timeout = args.timeout
             verbosity = args.verbosity
             verify = args.verify
-        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, verbosity)
+            content_search = args.content_search
+        linkchecker = LinkChecker(base_url, depth, no_threads, timeout, verify, verbosity, content_search)
         linkchecker.init_colorama()
         linkchecker.banner(VERSION)
         linkchecker.target_info()
